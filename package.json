@@ -10,5 +10,10 @@
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5"
-  }
+  },
+  "files": [
+    "server.js",
+    "public/",
+    "start.sh"
+  ]
 }
