@@ -2,6 +2,7 @@
 
 A web-based dashboard for managing open-source project Pull Requests, using [Apache Flink](https://github.com/apache/flink) as the default example.
 
+![main-frame](./docs/images/main-frame.png)
 ## Features
 
 - **PR List Dashboard** — View all PRs with status, CI results, review state, merge conflicts, and actionable to-dos at a glance.
