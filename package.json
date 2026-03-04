@@ -1,0 +1,14 @@
+{
+  "name": "prilot",
+  "version": "1.0.0",
+  "description": "PRilot - Your PR co-pilot. A lightweight dashboard for managing open source Pull Requests.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}

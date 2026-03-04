@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PRilot - Your PR Co-pilot</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 3v12"/>
+            <circle cx="18" cy="6" r="3"/>
+            <circle cx="6" cy="18" r="3"/>
+            <path d="M18 9a9 9 0 0 1-9 9"/>
+          </svg>
+          <h1>PRilot</h1>
+        </div>
+        <span class="subtitle">Your PR Co-pilot</span>
+      </div>
+      <div class="header-right">
+        <div class="cache-info" id="cacheInfo" title="Server cache status"></div>
+        <div class="api-calls-info" id="apiCallsInfo" title="GitHub API call statistics">API Calls: -</div>
+        <div class="rate-limit-info" id="rateLimitInfo" title="GitHub API rate limit"></div>
+        <button class="btn-help" onclick="toggleHelpModal()" title="Setup Guide">?</button>
+      </div>
+    </header>
+
+    <!-- Config Bar -->
+    <div class="config-bar">
+      <div class="config-item">
+        <label>Repository</label>
+        <input type="text" id="repoInput" value="apache/flink" placeholder="owner/repo">
+      </div>
+      <div class="config-item">
+        <label>Author</label>
+        <input type="text" id="authorInput" value="featzhang" placeholder="GitHub username (optional)">
+      </div>
+      <div class="config-item">
+        <label>State</label>
+        <select id="stateSelect">
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+      <div class="config-item config-item-narrow">
+        <label>CI</label>
+        <select id="ciStatusFilter" onchange="onFilterChange()">
+          <option value="">All</option>
+          <option value="success">Passed</option>
+          <option value="failure">Failed</option>
+          <option value="pending">Running</option>
+          <option value="unknown">Unknown</option>
+        </select>
+      </div>
+      <div class="config-item config-item-narrow">
+        <label>Review</label>
+        <select id="reviewStatusFilter" onchange="onFilterChange()">
+          <option value="">All</option>
+          <option value="approved">Approved</option>
+          <option value="changes_requested">Changes Req.</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+      <div class="config-item config-item-keyword">
+        <label>Keyword</label>
+        <input type="text" id="keywordInput" placeholder="Filter by title..." oninput="onKeywordInput()">
+      </div>
+      <button class="btn btn-primary" onclick="resetAndRefresh()">Search</button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-container">
+      <div class="stat-card stat-todos">
+        <div class="stat-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-number" id="todoCount">-</div>
+          <div class="stat-label">To-Dos</div>
+        </div>
+      </div>
+      <div class="stat-card stat-open">
+        <div class="stat-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-number" id="openCount">-</div>
+          <div class="stat-label">Open PRs</div>
+        </div>
+      </div>
+      <div class="stat-card stat-merged">
+        <div class="stat-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="18" cy="18" r="3"/>
+            <circle cx="6" cy="6" r="3"/>
+            <path d="M6 21V9a9 9 0 0 0 9 9"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-number" id="mergedCount">-</div>
+          <div class="stat-label">Contributions (Merged)</div>
+        </div>
+      </div>
+      <div class="stat-card stat-closed">
+        <div class="stat-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-number" id="closedCount">-</div>
+          <div class="stat-label">Closed PRs</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Banner -->
+    <div class="error-banner" id="errorBanner">
+      <div class="error-banner-content">
+        <span class="error-banner-icon" id="errorBannerIcon">❌</span>
+        <div class="error-banner-text">
+          <div class="error-banner-title" id="errorBannerTitle">Refresh Failed</div>
+          <div class="error-banner-detail" id="errorBannerDetail"></div>
+        </div>
+      </div>
+      <div class="error-banner-actions">
+        <button class="btn btn-sm" id="errorBannerRetry">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          Retry
+        </button>
+        <button class="btn btn-sm error-banner-dismiss" id="errorBannerDismiss">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-bar" id="loadingBar">
+      <div class="loading-progress"></div>
+    </div>
+
+    <!-- PR List -->
+    <div class="pr-list" id="prList">
+      <div class="empty-state" id="emptyState">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+          <path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>
+        </svg>
+        <p>Click "Search" to load PR list</p>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="paginationContainer"></div>
+
+    <!-- Toast -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Help Modal -->
+    <div class="help-overlay" id="helpOverlay" onclick="toggleHelpModal()">
+      <div class="help-modal" onclick="event.stopPropagation()">
+        <div class="help-modal-header">
+          <h2>Setup Guide</h2>
+          <button class="help-modal-close" onclick="toggleHelpModal()">&times;</button>
+        </div>
+        <div class="help-modal-body">
+          <section class="help-section">
+            <h3>1. Install GitHub CLI (gh)</h3>
+            <p>This tool uses <code>gh</code> CLI to query GitHub API. Install it first:</p>
+            <div class="help-code">
+              <div class="help-code-title">macOS (Homebrew)</div>
+              <pre>brew install gh</pre>
+            </div>
+            <div class="help-code">
+              <div class="help-code-title">Ubuntu / Debian</div>
+              <pre>sudo apt install gh</pre>
+            </div>
+            <div class="help-code">
+              <div class="help-code-title">Windows (winget)</div>
+              <pre>winget install GitHub.cli</pre>
+            </div>
+            <p>More options: <a href="https://cli.github.com" target="_blank" rel="noopener">https://cli.github.com</a></p>
+          </section>
+
+          <section class="help-section">
+            <h3>2. Authenticate with GitHub</h3>
+            <p>Login to your GitHub account:</p>
+            <div class="help-code">
+              <pre>gh auth login</pre>
+            </div>
+            <p>Follow the interactive prompts. Choose <strong>HTTPS</strong> protocol and authenticate via browser.</p>
+            <p>Verify it works:</p>
+            <div class="help-code">
+              <pre>gh auth status</pre>
+            </div>
+          </section>
+
+          <section class="help-section">
+            <h3>3. Install Node.js</h3>
+            <p>Node.js >= 16 is required to run the server.</p>
+            <div class="help-code">
+              <pre>node --version  # check if installed</pre>
+            </div>
+            <p>Install from <a href="https://nodejs.org" target="_blank" rel="noopener">https://nodejs.org</a> or via nvm:</p>
+            <div class="help-code">
+              <pre>curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install --lts</pre>
+            </div>
+          </section>
+
+          <section class="help-section">
+            <h3>4. Start PRilot</h3>
+            <div class="help-code">
+              <pre>npm install
+node server.js</pre>
+            </div>
+            <p>Then open <code>http://localhost:3000</code> in your browser.</p>
+          </section>
+
+          <section class="help-section">
+            <h3>5. Usage Tips</h3>
+            <ul>
+              <li>Enter a repository (e.g. <code>apache/flink</code>) and optionally an author filter</li>
+              <li>Click <strong>Search</strong> to load PR list</li>
+              <li><strong>Refresh</strong> uses server cache; <strong>Force Refresh</strong> bypasses cache and queries GitHub directly</li>
+              <li>Auto Refresh can be toggled on/off with configurable interval</li>
+              <li>Click the <strong>CI</strong> / <strong>Azure CI</strong> button on a PR card to view CI pipeline status</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

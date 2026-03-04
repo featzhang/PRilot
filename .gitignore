@@ -1,0 +1,5 @@
+node_modules/
+*.log
+.pr-manager.pid
+.env
+.DS_Store
